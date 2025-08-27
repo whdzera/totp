@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus";
 import Swal from "sweetalert2";
+import Sortable from "sortablejs";
 
 // Base32 characters
 const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -70,6 +71,7 @@ export default class TotpController extends Controller {
     this.showAccounts();
     this.updateCodes();
     this.startTimer();
+    this.initSortable();
   }
 
   startTimer() {
@@ -214,54 +216,87 @@ export default class TotpController extends Controller {
     }
   }
 
+  initSortable() {
+    const container = this.tokensContainerTarget;
+    this.sortable = new Sortable(container, {
+      animation: 150,
+      handle: ".drag-handle",
+      ghostClass: "sortable-ghost", // Changed to single class name
+      onEnd: (evt) => {
+        const accounts = JSON.parse(localStorage.getItem("gauth") || "[]");
+        const oldIndex = evt.oldIndex;
+        const newIndex = evt.newIndex;
+
+        // Reorder array
+        const item = accounts.splice(oldIndex, 1)[0];
+        accounts.splice(newIndex, 0, item);
+
+        // Save new order
+        localStorage.setItem("gauth", JSON.stringify(accounts));
+        this.updateCodes();
+      },
+    });
+  }
+
   showAccounts() {
     const accounts = JSON.parse(localStorage.getItem("gauth") || "[]");
 
     if (accounts.length === 0) {
       this.tokensContainerTarget.innerHTML = `
-                        <div class="bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 px-4 py-3 rounded mb-4 text-center">
-                            No accounts added yet
-                        </div>
-                    `;
+        <div class="bg-blue-100 dark:bg-blue-500 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-100 px-4 py-3 rounded mb-4 text-center">
+            No accounts added yet
+        </div>
+      `;
       return;
     }
 
     this.tokensContainerTarget.innerHTML = accounts
       .map(
         (account, index) => `
-                    <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg mb-4 overflow-hidden">
-                        <div class="p-6">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${this.escapeHtml(
-                                  account.name
-                                )}</h3>
-                                <button 
-                                    data-index="${index}" 
-                                    data-action="click->totp#deleteAccount"
-                                    class="clickable text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors duration-200"
-                                >
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                            <div class="text-center">
-                                <div class="font-mono text-3xl font-bold text-gray-900 dark:text-white tracking-widest mb-4" id="token-${index}">
-                                    ------
-                                </div>
-                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                    <div 
-                                        id="progress-${index}" 
-                                        class="bg-blue-600 h-2 rounded-full transition-all duration-1000 ease-linear"
-                                        style="width: 100%"
-                                    ></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `
+          <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg mb-4 overflow-hidden">
+              <div class="p-6">
+                  <div class="flex items-center justify-between mb-4">
+                      <div class="flex items-center gap-3">
+                          <!-- Add drag handle -->
+                          <div class="drag-handle cursor-move text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400">
+                              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                              </svg>
+                          </div>
+                          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${this.escapeHtml(
+                            account.name
+                          )}</h3>
+                      </div>
+                      <button 
+                          data-index="${index}" 
+                          data-action="click->totp#deleteAccount"
+                          class="clickable text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors duration-200"
+                      >
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                          </svg>
+                      </button>
+                  </div>
+                  <div class="text-center">
+                      <div class="font-mono text-3xl font-bold text-gray-900 dark:text-white tracking-widest mb-4" id="token-${index}">
+                          ------
+                      </div>
+                      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div 
+                              id="progress-${index}" 
+                              class="bg-blue-500 h-2 rounded-full transition-all duration-1000 ease-linear"
+                              style="width: 100%"
+                          ></div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+        `
       )
       .join("");
+
+    // Reinitialize sortable after updating content
+    this.initSortable();
   }
 
   escapeHtml(text) {

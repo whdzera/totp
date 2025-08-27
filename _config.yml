@@ -2,7 +2,7 @@ title: TOTP
 email: whdzera@gmail.com
 description: >- 
   A Time-based One-Time Password (TOTP) generator implemented in Stimulus.js
-baseurl: "/totp" 
+baseurl: "" 
 url: ""
 github_username:  whdzera
 

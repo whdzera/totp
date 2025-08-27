@@ -6,6 +6,7 @@
   "license": "MIT",
   "dependencies": {
     "@hotwired/stimulus": "^3.2.2",
+    "sortablejs": "^1.15.6",
     "sweetalert2": "^11.22.5"
   },
   "devDependencies": {
