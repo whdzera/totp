@@ -221,7 +221,7 @@ export default class TotpController extends Controller {
     this.sortable = new Sortable(container, {
       animation: 150,
       handle: ".drag-handle",
-      ghostClass: "sortable-ghost", // Changed to single class name
+      ghostClass: "sortable-ghost",
       onEnd: (evt) => {
         const accounts = JSON.parse(localStorage.getItem("gauth") || "[]");
         const oldIndex = evt.oldIndex;
@@ -233,6 +233,9 @@ export default class TotpController extends Controller {
 
         // Save new order
         localStorage.setItem("gauth", JSON.stringify(accounts));
+
+        // Instead of just updating codes, re-render the entire list
+        this.showAccounts();
         this.updateCodes();
       },
     });
@@ -257,7 +260,6 @@ export default class TotpController extends Controller {
               <div class="p-6">
                   <div class="flex items-center justify-between mb-4">
                       <div class="flex items-center gap-3">
-                          <!-- Add drag handle -->
                           <div class="drag-handle cursor-move text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400">
                               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
@@ -278,8 +280,18 @@ export default class TotpController extends Controller {
                       </button>
                   </div>
                   <div class="text-center">
-                      <div class="font-mono text-3xl font-bold text-gray-900 dark:text-white tracking-widest mb-4" id="token-${index}">
-                          ------
+                      <div class="relative group">
+                          <div 
+                              data-action="click->totp#copyToken"
+                              data-token-id="${index}"
+                              class="font-mono text-3xl font-bold text-gray-900 dark:text-white tracking-widest mb-4 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200" 
+                              id="token-${index}"
+                          >
+                              ------
+                          </div>
+                          <div class="hidden group-hover:block absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 dark:bg-gray-700 text-white text-sm rounded">
+                              Click to copy
+                          </div>
                       </div>
                       <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                           <div 
@@ -337,7 +349,14 @@ export default class TotpController extends Controller {
     const remaining = this.getTimeRemaining();
     const percentage = (remaining / 30) * 100;
 
-    accounts.forEach((account, index) => {
+    // Get all token elements in their current DOM order
+    const tokenElements =
+      this.tokensContainerTarget.querySelectorAll("[data-token-id]");
+
+    tokenElements.forEach((element) => {
+      const index = parseInt(element.dataset.tokenId);
+      const account = accounts[index];
+
       try {
         const token = this.calcOTP(account.secret);
         const tokenElement = document.getElementById(`token-${index}`);
@@ -351,15 +370,11 @@ export default class TotpController extends Controller {
 
           // Change color when time is running out
           if (remaining <= 10) {
-            progressElement.className = progressElement.className.replace(
-              "bg-blue-600",
-              "bg-red-500"
-            );
+            progressElement.classList.remove("bg-blue-500");
+            progressElement.classList.add("bg-red-500");
           } else {
-            progressElement.className = progressElement.className.replace(
-              "bg-red-500",
-              "bg-blue-600"
-            );
+            progressElement.classList.remove("bg-red-500");
+            progressElement.classList.add("bg-blue-500");
           }
         }
       } catch (e) {
@@ -370,5 +385,40 @@ export default class TotpController extends Controller {
         console.error("Error updating token for account " + index, e);
       }
     });
+  }
+
+  // Add this method to the TotpController class
+  async copyToken(event) {
+    const tokenId = event.currentTarget.dataset.tokenId;
+    const tokenElement = document.getElementById(`token-${tokenId}`);
+    const tokenText = tokenElement.textContent.trim();
+
+    try {
+      await navigator.clipboard.writeText(tokenText);
+
+      // Show success message
+      const originalText = tokenElement.textContent;
+      tokenElement.textContent = "Copied!";
+      tokenElement.classList.add("text-green-500");
+
+      // Reset after 1 second
+      setTimeout(() => {
+        tokenElement.textContent = originalText;
+        tokenElement.classList.remove("text-green-500");
+      }, 1000);
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+
+      // Show error message
+      const originalText = tokenElement.textContent;
+      tokenElement.textContent = "Failed to copy";
+      tokenElement.classList.add("text-red-500");
+
+      // Reset after 1 second
+      setTimeout(() => {
+        tokenElement.textContent = originalText;
+        tokenElement.classList.remove("text-red-500");
+      }, 1000);
+    }
   }
 }
