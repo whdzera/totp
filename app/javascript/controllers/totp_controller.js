@@ -222,19 +222,24 @@ export default class TotpController extends Controller {
       animation: 150,
       handle: ".drag-handle",
       ghostClass: "sortable-ghost",
+      // Add touch settings
+      touchStartThreshold: 3, // Pixels moved before drag starts
+      delay: 150, // Delay before drag starts on mobile
+      delayOnTouchOnly: true, // Only add delay for touch devices
+      // Add mobile support
+      forceFallback: false, // Use native HTML5 drag if available
+      fallbackTolerance: 3, // Pixels moved before fallback drag starts
+      touchAction: "none", // Prevent scrolling while dragging on mobile
+      // Existing settings
       onEnd: (evt) => {
         const accounts = JSON.parse(localStorage.getItem("gauth") || "[]");
         const oldIndex = evt.oldIndex;
         const newIndex = evt.newIndex;
 
-        // Reorder array
         const item = accounts.splice(oldIndex, 1)[0];
         accounts.splice(newIndex, 0, item);
 
-        // Save new order
         localStorage.setItem("gauth", JSON.stringify(accounts));
-
-        // Instead of just updating codes, re-render the entire list
         this.showAccounts();
         this.updateCodes();
       },
@@ -260,10 +265,10 @@ export default class TotpController extends Controller {
               <div class="p-6">
                   <div class="flex items-center justify-between mb-4">
                       <div class="flex items-center gap-3">
-                          <div class="drag-handle cursor-move text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400">
-                              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
-                              </svg>
+                          <div class="drag-handle relative cursor-move text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400 p-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                            </svg>
                           </div>
                           <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${this.escapeHtml(
                             account.name

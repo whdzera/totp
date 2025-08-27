@@ -5,3 +5,26 @@
 .clickable {
   cursor: pointer;
 }
+
+@media (pointer: coarse) {
+  .drag-handle {
+    @apply p-2 -m-2; /* Larger touch target */
+  }
+
+  .sortable-ghost {
+    @apply opacity-90 scale-[0.98];
+  }
+
+  .sortable-drag {
+    @apply opacity-95 scale-[1.02] shadow-lg;
+  }
+}
+
+.sortable-drag,
+.sortable-ghost {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
