@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus";
+import Swal from "sweetalert2";
 
 // Base32 characters
 const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -46,6 +47,17 @@ function hex2dec(s) {
   return parseInt(s, 16);
 }
 
+// Tambahkan fungsi untuk mendapatkan tema SweetAlert
+function getSwalTheme() {
+  const isDark = document.documentElement.classList.contains("dark");
+  return {
+    background: isDark ? "#1F2937" : "#ffffff",
+    confirmButtonColor: "#0c36cf",
+    cancelButtonColor: "#6B7280",
+    color: isDark ? "#ffffff" : "#1F2937",
+  };
+}
+
 // TOTP Controller
 export default class TotpController extends Controller {
   static targets = [
@@ -88,7 +100,7 @@ export default class TotpController extends Controller {
         icon: "error",
         title: "Validation Error",
         text: "Please fill in all columns",
-        confirmButtonColor: "#3B82F6",
+        ...getSwalTheme(),
       });
       return;
     }
@@ -100,7 +112,7 @@ export default class TotpController extends Controller {
         icon: "error",
         title: "Invalid Secret Key",
         text: e.message,
-        confirmButtonColor: "#3B82F6",
+        ...getSwalTheme(),
       });
       return;
     }
@@ -116,8 +128,7 @@ export default class TotpController extends Controller {
         showCancelButton: true,
         confirmButtonText: "Yes, update it",
         cancelButtonText: "No, keep it",
-        confirmButtonColor: "#3B82F6",
-        cancelButtonColor: "#6B7280",
+        ...getSwalTheme(),
       });
 
       if (!result.isConfirmed) {
@@ -136,9 +147,9 @@ export default class TotpController extends Controller {
       icon: "success",
       title: "Success",
       text: "Account has been added successfully!",
-      confirmButtonColor: "#3B82F6",
       timer: 1500,
       showConfirmButton: false,
+      ...getSwalTheme(),
     });
 
     this.showAccounts();
@@ -154,7 +165,7 @@ export default class TotpController extends Controller {
       confirmButtonText: "Yes, delete all",
       cancelButtonText: "Cancel",
       confirmButtonColor: "#EF4444",
-      cancelButtonColor: "#6B7280",
+      ...getSwalTheme(),
     });
 
     if (result.isConfirmed) {
@@ -165,9 +176,9 @@ export default class TotpController extends Controller {
         icon: "success",
         title: "Deleted!",
         text: "All accounts have been deleted.",
-        confirmButtonColor: "#3B82F6",
         timer: 1500,
         showConfirmButton: false,
+        ...getSwalTheme(),
       });
     }
   }
@@ -185,7 +196,7 @@ export default class TotpController extends Controller {
       confirmButtonText: "Yes, delete it",
       cancelButtonText: "Cancel",
       confirmButtonColor: "#EF4444",
-      cancelButtonColor: "#6B7280",
+      ...getSwalTheme(),
     });
 
     if (result.isConfirmed) {
@@ -197,9 +208,9 @@ export default class TotpController extends Controller {
         icon: "success",
         title: "Deleted!",
         text: "The account has been deleted.",
-        confirmButtonColor: "#3B82F6",
         timer: 1500,
         showConfirmButton: false,
+        ...getSwalTheme(),
       });
     }
   }
