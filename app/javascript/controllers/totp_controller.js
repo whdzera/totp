@@ -47,7 +47,6 @@ function hex2dec(s) {
   return parseInt(s, 16);
 }
 
-// Tambahkan fungsi untuk mendapatkan tema SweetAlert
 function getSwalTheme() {
   const isDark = document.documentElement.classList.contains("dark");
   return {
