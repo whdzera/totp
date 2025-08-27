@@ -1,7 +1,5 @@
 import { Controller } from "@hotwired/stimulus";
 
-const application = Application.start();
-
 // Base32 characters
 const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
@@ -58,7 +56,6 @@ export default class TotpController extends Controller {
   ];
 
   connect() {
-    console.log("TOTP Controller connected");
     this.showAccounts();
     this.updateCodes();
     this.startTimer();
@@ -161,7 +158,7 @@ export default class TotpController extends Controller {
                                 <button 
                                     data-index="${index}" 
                                     data-action="click->totp#deleteAccount"
-                                    class="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors duration-200"
+                                    class="clickable text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors duration-200"
                                 >
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -260,5 +257,3 @@ export default class TotpController extends Controller {
     });
   }
 }
-
-application.register("totp", TOTPController);

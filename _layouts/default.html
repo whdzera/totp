@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -58,6 +58,14 @@
   </head>
 
   <body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
+    <div class="fixed top-4 right-4 z-50">
+      <button
+        class="p-2 rounded-lg bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all duration-200 cursor-pointer"
+        data-action="theme#toggle"
+      >
+        <div data-theme-target="icon"></div>
+      </button>
+    </div>
     {{ content }}
   </body>
 </html>
