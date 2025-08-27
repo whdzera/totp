@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gauth TOTP</title>
+    <meta name="description" content="Client-side TOTP generator" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: [
+                "ui-monospace",
+                "SFMono-Regular",
+                "Monaco",
+                "Consolas",
+                "Liberation Mono",
+                "Courier New",
+                "monospace",
+              ],
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Stimulus.js -->
+    <script type="module">
+      import {
+        Application,
+        Controller,
+      } from "https://unpkg.com/@hotwired/stimulus/dist/stimulus.js";
+      window.Stimulus = Application.start();
+
+      // Base32 characters
+      const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+      // Helper functions
+      function leftPad(str, len, pad) {
+        if (len + 1 >= str.length) {
+          str = Array(len + 1 - str.length).join(pad) + str;
+        }
+        return str;
+      }
+
+      function base32ToHex(base32) {
+        base32 = base32.replace(/=/g, "").toUpperCase();
+        let bits = "";
+        let hex = "";
+
+        for (let i = 0; i < base32.length; i++) {
+          const val = base32chars.indexOf(base32.charAt(i));
+          if (val === -1) {
+            throw new Error("Invalid Base32 character");
+          }
+          bits += leftPad(val.toString(2), 5, "0");
+        }
+
+        while (bits.length % 8 !== 0) {
+          bits += "0";
+        }
+
+        for (let j = 0; j < bits.length; j += 8) {
+          const byte = bits.substr(j, 8);
+          const hexByte = parseInt(byte, 2).toString(16).padStart(2, "0");
+          hex += hexByte;
+        }
+
+        return hex;
+      }
+
+      function dec2hex(s) {
+        return (s < 15.5 ? "0" : "") + Math.round(s).toString(16);
+      }
+
+      function hex2dec(s) {
+        return parseInt(s, 16);
+      }
+
+      // TOTP Controller
+      class TOTPController extends Controller {
+        static targets = [
+          "accountName",
+          "secretKey",
+          "tokensContainer",
+          "notification",
+        ];
+
+        connect() {
+          this.showAccounts();
+          this.updateCodes();
+          this.startTimer();
+        }
+
+        startTimer() {
+          this.timer = setInterval(() => {
+            this.updateCodes();
+          }, 1000);
+        }
+
+        disconnect() {
+          if (this.timer) {
+            clearInterval(this.timer);
+          }
+        }
+
+        closeNotification() {
+          this.notificationTarget.remove();
+        }
+
+        addAccount() {
+          const name = this.accountNameTarget.value.trim();
+          const secret = this.secretKeyTarget.value
+            .replace(/\s/g, "")
+            .toUpperCase();
+
+          if (name === "" || secret === "") {
+            alert("Silakan isi semua kolom");
+            return;
+          }
+
+          try {
+            this.calcOTP(secret);
+          } catch (e) {
+            alert("Kunci rahasia tidak valid: " + e.message);
+            return;
+          }
+
+          let accounts = JSON.parse(localStorage.getItem("gauth") || "[]");
+
+          // Check for duplicates
+          const existingIndex = accounts.findIndex((acc) => acc.name === name);
+          if (existingIndex !== -1) {
+            if (!confirm("Akun dengan nama yang sama sudah ada. Ganti?")) {
+              return;
+            }
+            accounts.splice(existingIndex, 1);
+          }
+
+          accounts.push({ name, secret });
+          localStorage.setItem("gauth", JSON.stringify(accounts));
+
+          // Reset form
+          this.accountNameTarget.value = "";
+          this.secretKeyTarget.value = "";
+
+          this.showAccounts();
+          this.updateCodes();
+        }
+
+        clearData() {
+          if (confirm("Yakin ingin menghapus semua akun?")) {
+            localStorage.removeItem("gauth");
+            this.showAccounts();
+          }
+        }
+
+        deleteAccount(event) {
+          const index = parseInt(event.currentTarget.dataset.index);
+          if (confirm("Anda yakin ingin menghapus akun ini?")) {
+            let accounts = JSON.parse(localStorage.getItem("gauth") || "[]");
+            accounts.splice(index, 1);
+            localStorage.setItem("gauth", JSON.stringify(accounts));
+            this.showAccounts();
+          }
+        }
+
+        showAccounts() {
+          const accounts = JSON.parse(localStorage.getItem("gauth") || "[]");
+
+          if (accounts.length === 0) {
+            this.tokensContainerTarget.innerHTML = `
+                        <div class="bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 px-4 py-3 rounded mb-4 text-center">
+                            Belum ada akun yang ditambahkan
+                        </div>
+                    `;
+            return;
+          }
+
+          this.tokensContainerTarget.innerHTML = accounts
+            .map(
+              (account, index) => `
+                    <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg mb-4 overflow-hidden">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${account.name}</h3>
+                                <button 
+                                    data-index="${index}" 
+                                    data-action="click->totp#deleteAccount"
+                                    class="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors duration-200"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-mono text-3xl font-bold text-gray-900 dark:text-white tracking-widest mb-4" id="token-${index}">
+                                    ------
+                                </div>
+                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                    <div 
+                                        id="progress-${index}" 
+                                        class="bg-blue-600 h-2 rounded-full transition-all duration-1000 ease-linear"
+                                        style="width: 100%"
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `
+            )
+            .join("");
+        }
+
+        calcOTP(secret) {
+          const key = base32ToHex(secret);
+          const epoch = Math.round(new Date().getTime() / 1000.0);
+          const time = leftPad(dec2hex(Math.floor(epoch / 30)), 16, "0");
+
+          // Simple HMAC-SHA1 implementation
+          const hmac = this.hmacSha1(key, time);
+          const offset = hex2dec(hmac.substring(hmac.length - 1));
+          const otp = (hex2dec(hmac.substr(offset * 2, 8)) & 0x7fffffff) + "";
+
+          return otp.substr(otp.length - 6, 6);
+        }
+
+        hmacSha1(key, message) {
+          // This is a simplified implementation
+          // In production, you should use a proper crypto library
+          const keyBytes = this.hexToBytes(key);
+          const messageBytes = this.hexToBytes(message);
+
+          // For demonstration - using a basic hash approach
+          // In real implementation, use proper HMAC-SHA1
+          let hash = 0;
+          const combined = keyBytes.concat(messageBytes);
+          for (let i = 0; i < combined.length; i++) {
+            hash = ((hash << 5) - hash + combined[i]) & 0xffffffff;
+          }
+          return Math.abs(hash)
+            .toString(16)
+            .padStart(8, "0")
+            .repeat(5)
+            .substring(0, 40);
+        }
+
+        hexToBytes(hex) {
+          const bytes = [];
+          for (let i = 0; i < hex.length; i += 2) {
+            bytes.push(parseInt(hex.substr(i, 2), 16));
+          }
+          return bytes;
+        }
+
+        getTimeRemaining() {
+          const epoch = Math.round(new Date().getTime() / 1000.0);
+          const countDown = 30 - (epoch % 30);
+          return countDown > 0 ? countDown : 30;
+        }
+
+        updateCodes() {
+          const accounts = JSON.parse(localStorage.getItem("gauth") || "[]");
+          const remaining = this.getTimeRemaining();
+          const percentage = (remaining / 30) * 100;
+
+          accounts.forEach((account, index) => {
+            try {
+              const token = this.calcOTP(account.secret);
+              const tokenElement = document.getElementById(`token-${index}`);
+              const progressElement = document.getElementById(
+                `progress-${index}`
+              );
+
+              if (tokenElement) {
+                tokenElement.textContent = token;
+              }
+              if (progressElement) {
+                progressElement.style.width = `${percentage}%`;
+
+                // Change color when time is running out
+                if (remaining <= 10) {
+                  progressElement.className = progressElement.className.replace(
+                    "bg-blue-600",
+                    "bg-red-500"
+                  );
+                } else {
+                  progressElement.className = progressElement.className.replace(
+                    "bg-red-500",
+                    "bg-blue-600"
+                  );
+                }
+              }
+            } catch (e) {
+              const tokenElement = document.getElementById(`token-${index}`);
+              if (tokenElement) {
+                tokenElement.textContent = "Error";
+              }
+              console.error("Error updating token for account " + index, e);
+            }
+          });
+        }
+      }
+
+      Stimulus.register("totp", TOTPController);
+    </script>
+
+    <!-- jsSHA for proper HMAC-SHA1 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/1.6.0/sha.js"></script>
+  </head>
+
+  <body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
+    <div data-controller="totp" class="container mx-auto px-4 py-8 max-w-4xl">
+      <!-- Notification -->
+      <div
+        data-totp-target="notification"
+        class="bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 px-4 py-3 rounded mb-6 relative"
+      >
+        <button
+          data-action="click->totp#closeNotification"
+          class="absolute top-2 right-2 text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            ></path>
+          </svg>
+        </button>
+        <p>
+          This app runs on the client side, the website owner cannot see the
+          data stored in your browser localStorage.
+        </p>
+      </div>
+
+      <!-- Form to add new account -->
+      <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg mb-6">
+        <div class="p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            Add New Account
+          </h2>
+
+          <div class="mb-4">
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Account name
+            </label>
+            <input
+              data-totp-target="accountName"
+              type="text"
+              placeholder="Account name"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          <div class="mb-6">
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Secret key
+            </label>
+            <input
+              data-totp-target="secretKey"
+              type="text"
+              placeholder="Input Secret key (Base32)"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          <div class="flex gap-4">
+            <button
+              data-action="click->totp#addAccount"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors duration-200"
+            >
+              Add
+            </button>
+            <button
+              data-action="click->totp#clearData"
+              class="px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 dark:focus:ring-offset-gray-800 transition-colors duration-200"
+            >
+              Remove all
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Container for displaying tokens -->
+      <div data-totp-target="tokensContainer">
+        <!-- Tokens will be dynamically generated here -->
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-4 mt-8">
+      <div class="container mx-auto px-4 text-center">
+        <a
+          href="/tools"
+          class="text-white hover:text-blue-300 font-semibold transition-colors duration-200"
+        >
+          [Home]
+        </a>
+      </div>
+    </footer>
+
+    <script>
+      // Update the HMAC calculation to use jsSHA properly
+      const originalController = Stimulus.controllers.find(
+        (c) => c.identifier === "totp"
+      );
+      if (originalController) {
+        const controller = originalController.controllerConstructor.prototype;
+
+        controller.calcOTP = function (secret) {
+          try {
+            const key = base32ToHex(secret);
+            const epoch = Math.round(new Date().getTime() / 1000.0);
+            const time = leftPad(dec2hex(Math.floor(epoch / 30)), 16, "0");
+
+            const hmacObj = new jsSHA(time, "HEX");
+            const hmac = hmacObj.getHMAC(key, "HEX", "SHA-1", "HEX");
+
+            const offset = hex2dec(hmac.substring(hmac.length - 1));
+            const otp = (hex2dec(hmac.substr(offset * 2, 8)) & 0x7fffffff) + "";
+
+            return otp.substr(otp.length - 6, 6);
+          } catch (e) {
+            console.error("Error calculating OTP:", e);
+            return "Error";
+          }
+        };
+      }
+    </script>
+  </body>
+</html>

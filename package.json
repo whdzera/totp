@@ -1,0 +1,14 @@
+{
+  "name": "jekyll-template-starter",
+  "version": "1.0.0",
+  "description": "Boilerplate for Jekyll projects with Vite, Tailwind CSS and Stimulus JS",
+  "author": "whdzera",
+  "license": "MIT",
+  "dependencies": {
+    "@hotwired/stimulus": "^3.2.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.8",
+    "vite": "^6.3.5"
+  }
+}
