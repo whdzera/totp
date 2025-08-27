@@ -79,28 +79,48 @@ export default class TotpController extends Controller {
     }
   }
 
-  addAccount() {
+  async addAccount() {
     const name = this.accountNameTarget.value.trim();
     const secret = this.secretKeyTarget.value.replace(/\s/g, "").toUpperCase();
 
     if (name === "" || secret === "") {
-      alert("Silakan isi semua kolom");
+      await Swal.fire({
+        icon: "error",
+        title: "Validation Error",
+        text: "Please fill in all columns",
+        confirmButtonColor: "#3B82F6",
+      });
       return;
     }
 
     try {
       this.calcOTP(secret);
     } catch (e) {
-      alert("Kunci rahasia tidak valid: " + e.message);
+      await Swal.fire({
+        icon: "error",
+        title: "Invalid Secret Key",
+        text: e.message,
+        confirmButtonColor: "#3B82F6",
+      });
       return;
     }
 
     let accounts = JSON.parse(localStorage.getItem("gauth") || "[]");
-
-    // Check for duplicates
     const existingIndex = accounts.findIndex((acc) => acc.name === name);
+
     if (existingIndex !== -1) {
-      if (!confirm("Akun dengan nama yang sama sudah ada. Ganti?")) {
+      const result = await Swal.fire({
+        icon: "question",
+        title: "Account Exists",
+        text: "An account with the same name already exists. Do you want to update it?",
+        showCancelButton: true,
+        confirmButtonText: "Yes, update it",
+        cancelButtonText: "No, keep it",
+        confirmButtonColor: "#3B82F6",
+        cancelButtonColor: "#6B7280",
+      });
+
+      if (!result.isConfirmed) {
         return;
       }
       accounts.splice(existingIndex, 1);
@@ -109,28 +129,78 @@ export default class TotpController extends Controller {
     accounts.push({ name, secret });
     localStorage.setItem("gauth", JSON.stringify(accounts));
 
-    // Reset form
     this.accountNameTarget.value = "";
     this.secretKeyTarget.value = "";
+
+    await Swal.fire({
+      icon: "success",
+      title: "Success",
+      text: "Account has been added successfully!",
+      confirmButtonColor: "#3B82F6",
+      timer: 1500,
+      showConfirmButton: false,
+    });
 
     this.showAccounts();
     this.updateCodes();
   }
 
-  clearData() {
-    if (confirm("Yakin ingin menghapus semua akun?")) {
+  async clearData() {
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Are you sure?",
+      text: "This will delete all your accounts. This action cannot be undone!",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete all",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#EF4444",
+      cancelButtonColor: "#6B7280",
+    });
+
+    if (result.isConfirmed) {
       localStorage.removeItem("gauth");
       this.showAccounts();
+
+      await Swal.fire({
+        icon: "success",
+        title: "Deleted!",
+        text: "All accounts have been deleted.",
+        confirmButtonColor: "#3B82F6",
+        timer: 1500,
+        showConfirmButton: false,
+      });
     }
   }
 
-  deleteAccount(event) {
+  async deleteAccount(event) {
     const index = parseInt(event.currentTarget.dataset.index);
-    if (confirm("Anda yakin ingin menghapus akun ini?")) {
-      let accounts = JSON.parse(localStorage.getItem("gauth") || "[]");
+    const accounts = JSON.parse(localStorage.getItem("gauth") || "[]");
+    const account = accounts[index];
+
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Delete Account",
+      text: `Are you sure you want to delete "${account.name}"?`,
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#EF4444",
+      cancelButtonColor: "#6B7280",
+    });
+
+    if (result.isConfirmed) {
       accounts.splice(index, 1);
       localStorage.setItem("gauth", JSON.stringify(accounts));
       this.showAccounts();
+
+      await Swal.fire({
+        icon: "success",
+        title: "Deleted!",
+        text: "The account has been deleted.",
+        confirmButtonColor: "#3B82F6",
+        timer: 1500,
+        showConfirmButton: false,
+      });
     }
   }
 
@@ -140,7 +210,7 @@ export default class TotpController extends Controller {
     if (accounts.length === 0) {
       this.tokensContainerTarget.innerHTML = `
                         <div class="bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 px-4 py-3 rounded mb-4 text-center">
-                            Belum ada akun yang ditambahkan
+                            No accounts added yet
                         </div>
                     `;
       return;

@@ -45,6 +45,7 @@
     />
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/1.6.0/sha.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     {% if jekyll.environment == "development" %}
     <script type="module" src="http://localhost:5173/application.js"></script>
@@ -57,7 +58,10 @@
     {% endif %}
   </head>
 
-  <body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
+  <body
+    class="bg-gray-100 dark:bg-gray-900 min-h-screen"
+    data-controller="theme"
+  >
     <div class="fixed top-4 right-4 z-50">
       <button
         class="p-2 rounded-lg bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all duration-200 cursor-pointer"
