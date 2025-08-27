@@ -1,0 +1,91 @@
+---
+layout: default
+---
+
+<div data-controller="totp" class="container mx-auto px-4 py-8 max-w-4xl">
+  <!-- Notification -->
+  <div
+    data-totp-target="notification"
+    class="bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 px-4 py-3 rounded mb-6 relative"
+  >
+    <button
+      data-action="click->totp#closeNotification"
+      class="absolute top-2 right-2 text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100"
+    >
+      <svg
+        class="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"
+        ></path>
+      </svg>
+    </button>
+    <p>
+      This app runs on the client side, the website owner cannot see the data
+      stored in your browser localStorage.
+    </p>
+  </div>
+
+  <!-- Form to add new account -->
+  <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg mb-6">
+    <div class="p-6">
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        Add New Account
+      </h2>
+
+      <div class="mb-4">
+        <label
+          class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+        >
+          Account name
+        </label>
+        <input
+          data-totp-target="accountName"
+          type="text"
+          placeholder="Account name"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+        />
+      </div>
+
+      <div class="mb-6">
+        <label
+          class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+        >
+          Secret key
+        </label>
+        <input
+          data-totp-target="secretKey"
+          type="text"
+          placeholder="Input Secret key (Base32)"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+        />
+      </div>
+
+      <div class="flex gap-4">
+        <button
+          data-action="click->totp#addAccount"
+          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors duration-200"
+        >
+          Add
+        </button>
+        <button
+          data-action="click->totp#clearData"
+          class="px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 dark:focus:ring-offset-gray-800 transition-colors duration-200"
+        >
+          Remove all
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container for displaying tokens -->
+  <div data-totp-target="tokensContainer">
+    <!-- Tokens will be dynamically generated here -->
+  </div>
+</div>

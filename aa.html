@@ -30,13 +30,17 @@
       };
     </script>
 
+    <!-- jsSHA for HMAC-SHA1 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/1.6.0/sha.js"></script>
+
     <!-- Stimulus.js -->
     <script type="module">
       import {
         Application,
         Controller,
       } from "https://unpkg.com/@hotwired/stimulus/dist/stimulus.js";
-      window.Stimulus = Application.start();
+
+      const application = Application.start();
 
       // Base32 characters
       const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -57,6 +61,7 @@
         for (let i = 0; i < base32.length; i++) {
           const val = base32chars.indexOf(base32.charAt(i));
           if (val === -1) {
+            console.error("Invalid Base32 character:", base32.charAt(i));
             throw new Error("Invalid Base32 character");
           }
           bits += leftPad(val.toString(2), 5, "0");
@@ -93,6 +98,7 @@
         ];
 
         connect() {
+          console.log("TOTP Controller connected");
           this.showAccounts();
           this.updateCodes();
           this.startTimer();
@@ -111,7 +117,9 @@
         }
 
         closeNotification() {
-          this.notificationTarget.remove();
+          if (this.hasNotificationTarget) {
+            this.notificationTarget.style.display = "none";
+          }
         }
 
         addAccount() {
@@ -189,7 +197,9 @@
                     <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg mb-4 overflow-hidden">
                         <div class="p-6">
                             <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${account.name}</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${this.escapeHtml(
+                                  account.name
+                                )}</h3>
                                 <button 
                                     data-index="${index}" 
                                     data-action="click->totp#deleteAccount"
@@ -219,45 +229,31 @@
             .join("");
         }
 
+        escapeHtml(text) {
+          const div = document.createElement("div");
+          div.textContent = text;
+          return div.innerHTML;
+        }
+
         calcOTP(secret) {
-          const key = base32ToHex(secret);
-          const epoch = Math.round(new Date().getTime() / 1000.0);
-          const time = leftPad(dec2hex(Math.floor(epoch / 30)), 16, "0");
+          try {
+            const key = base32ToHex(secret);
+            const epoch = Math.round(new Date().getTime() / 1000.0);
+            const time = leftPad(dec2hex(Math.floor(epoch / 30)), 16, "0");
 
-          // Simple HMAC-SHA1 implementation
-          const hmac = this.hmacSha1(key, time);
-          const offset = hex2dec(hmac.substring(hmac.length - 1));
-          const otp = (hex2dec(hmac.substr(offset * 2, 8)) & 0x7fffffff) + "";
+            // Use jsSHA for proper HMAC-SHA1
+            const hmacObj = new jsSHA(time, "HEX");
+            const hmac = hmacObj.getHMAC(key, "HEX", "SHA-1", "HEX");
 
-          return otp.substr(otp.length - 6, 6);
-        }
+            const offset = hex2dec(hmac.substring(hmac.length - 1));
+            const otp = (hex2dec(hmac.substr(offset * 2, 8)) & 0x7fffffff) + "";
 
-        hmacSha1(key, message) {
-          // This is a simplified implementation
-          // In production, you should use a proper crypto library
-          const keyBytes = this.hexToBytes(key);
-          const messageBytes = this.hexToBytes(message);
-
-          // For demonstration - using a basic hash approach
-          // In real implementation, use proper HMAC-SHA1
-          let hash = 0;
-          const combined = keyBytes.concat(messageBytes);
-          for (let i = 0; i < combined.length; i++) {
-            hash = ((hash << 5) - hash + combined[i]) & 0xffffffff;
+            return otp.substr(otp.length - 6, 6);
+          } catch (e) {
+            console.error("Error calculating OTP:", e);
+            console.error("Secret:", secret);
+            return "Error";
           }
-          return Math.abs(hash)
-            .toString(16)
-            .padStart(8, "0")
-            .repeat(5)
-            .substring(0, 40);
-        }
-
-        hexToBytes(hex) {
-          const bytes = [];
-          for (let i = 0; i < hex.length; i += 2) {
-            bytes.push(parseInt(hex.substr(i, 2), 16));
-          }
-          return bytes;
         }
 
         getTimeRemaining() {
@@ -309,11 +305,8 @@
         }
       }
 
-      Stimulus.register("totp", TOTPController);
+      application.register("totp", TOTPController);
     </script>
-
-    <!-- jsSHA for proper HMAC-SHA1 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/1.6.0/sha.js"></script>
   </head>
 
   <body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
@@ -416,34 +409,5 @@
         </a>
       </div>
     </footer>
-
-    <script>
-      // Update the HMAC calculation to use jsSHA properly
-      const originalController = Stimulus.controllers.find(
-        (c) => c.identifier === "totp"
-      );
-      if (originalController) {
-        const controller = originalController.controllerConstructor.prototype;
-
-        controller.calcOTP = function (secret) {
-          try {
-            const key = base32ToHex(secret);
-            const epoch = Math.round(new Date().getTime() / 1000.0);
-            const time = leftPad(dec2hex(Math.floor(epoch / 30)), 16, "0");
-
-            const hmacObj = new jsSHA(time, "HEX");
-            const hmac = hmacObj.getHMAC(key, "HEX", "SHA-1", "HEX");
-
-            const offset = hex2dec(hmac.substring(hmac.length - 1));
-            const otp = (hex2dec(hmac.substr(offset * 2, 8)) & 0x7fffffff) + "";
-
-            return otp.substr(otp.length - 6, 6);
-          } catch (e) {
-            console.error("Error calculating OTP:", e);
-            return "Error";
-          }
-        };
-      }
-    </script>
   </body>
 </html>
