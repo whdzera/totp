@@ -2,10 +2,6 @@ source "https://rubygems.org"
 
 gem "jekyll", "4.4.1"
 
-group :jekyll_plugins do
-  gem "jekyll-feed", "0.12"
-end
-
 group :development do
   gem "rake", "13.3.0"
   gem "rspec", "3.13.0"
