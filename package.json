@@ -1,7 +1,7 @@
 {
-  "name": "jekyll-template-starter",
+  "name": "totp",
   "version": "1.0.0",
-  "description": "Boilerplate for Jekyll projects with Vite, Tailwind CSS and Stimulus JS",
+  "description": "totp Management",
   "author": "whdzera",
   "license": "MIT",
   "dependencies": {
