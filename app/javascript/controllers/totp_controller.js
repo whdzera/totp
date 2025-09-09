@@ -2,10 +2,8 @@ import { Controller } from "@hotwired/stimulus";
 import Swal from "sweetalert2";
 import Sortable from "sortablejs";
 
-// Base32 characters
 const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
-// Helper functions
 function leftPad(str, len, pad) {
   if (len + 1 >= str.length) {
     str = Array(len + 1 - str.length).join(pad) + str;
@@ -222,15 +220,12 @@ export default class TotpController extends Controller {
       animation: 150,
       handle: ".drag-handle",
       ghostClass: "sortable-ghost",
-      // Add touch settings
-      touchStartThreshold: 3, // Pixels moved before drag starts
-      delay: 150, // Delay before drag starts on mobile
-      delayOnTouchOnly: true, // Only add delay for touch devices
-      // Add mobile support
-      forceFallback: false, // Use native HTML5 drag if available
-      fallbackTolerance: 3, // Pixels moved before fallback drag starts
-      touchAction: "none", // Prevent scrolling while dragging on mobile
-      // Existing settings
+      touchStartThreshold: 3,
+      delay: 150,
+      delayOnTouchOnly: true,
+      forceFallback: false,
+      fallbackTolerance: 3,
+      touchAction: "none",
       onEnd: (evt) => {
         const accounts = JSON.parse(localStorage.getItem("gauth") || "[]");
         const oldIndex = evt.oldIndex;
@@ -312,7 +307,6 @@ export default class TotpController extends Controller {
       )
       .join("");
 
-    // Reinitialize sortable after updating content
     this.initSortable();
   }
 
@@ -328,7 +322,6 @@ export default class TotpController extends Controller {
       const epoch = Math.round(new Date().getTime() / 1000.0);
       const time = leftPad(dec2hex(Math.floor(epoch / 30)), 16, "0");
 
-      // Use jsSHA for proper HMAC-SHA1
       const hmacObj = new jsSHA(time, "HEX");
       const hmac = hmacObj.getHMAC(key, "HEX", "SHA-1", "HEX");
 
@@ -354,7 +347,6 @@ export default class TotpController extends Controller {
     const remaining = this.getTimeRemaining();
     const percentage = (remaining / 30) * 100;
 
-    // Get all token elements in their current DOM order
     const tokenElements =
       this.tokensContainerTarget.querySelectorAll("[data-token-id]");
 
@@ -373,7 +365,6 @@ export default class TotpController extends Controller {
         if (progressElement) {
           progressElement.style.width = `${percentage}%`;
 
-          // Change color when time is running out
           if (remaining <= 10) {
             progressElement.classList.remove("bg-blue-500");
             progressElement.classList.add("bg-red-500");
@@ -392,7 +383,6 @@ export default class TotpController extends Controller {
     });
   }
 
-  // Add this method to the TotpController class
   async copyToken(event) {
     const tokenId = event.currentTarget.dataset.tokenId;
     const tokenElement = document.getElementById(`token-${tokenId}`);
@@ -401,12 +391,10 @@ export default class TotpController extends Controller {
     try {
       await navigator.clipboard.writeText(tokenText);
 
-      // Show success message
       const originalText = tokenElement.textContent;
       tokenElement.textContent = "Copied!";
       tokenElement.classList.add("text-green-500");
 
-      // Reset after 1 second
       setTimeout(() => {
         tokenElement.textContent = originalText;
         tokenElement.classList.remove("text-green-500");
@@ -414,12 +402,10 @@ export default class TotpController extends Controller {
     } catch (err) {
       console.error("Failed to copy text: ", err);
 
-      // Show error message
       const originalText = tokenElement.textContent;
       tokenElement.textContent = "Failed to copy";
       tokenElement.classList.add("text-red-500");
 
-      // Reset after 1 second
       setTimeout(() => {
         tokenElement.textContent = originalText;
         tokenElement.classList.remove("text-red-500");
