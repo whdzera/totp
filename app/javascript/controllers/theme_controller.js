@@ -16,7 +16,7 @@ export default class ThemeController extends Controller {
 
   loadTheme() {
     const savedTheme = localStorage.getItem("theme");
-    const isDark = savedTheme === "dark";
+    const isDark = savedTheme ? savedTheme === "dark" : true;
     document.documentElement.classList.toggle("dark", isDark);
     this.updateIcons(isDark);
   }
