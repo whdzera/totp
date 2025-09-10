@@ -1,9 +1,17 @@
 title: TOTP
 email: whdzera@gmail.com
-description: >- 
+description: >-
   A Time-based One-Time Password (TOTP) generator
-baseurl: "/totp" 
+baseurl: "/totp"
 url: ""
 
 include:
   - app
+
+exclude:
+  - spec
+  - package.json
+  - package-lock.json
+  - README.md
+  - Rakefile
+  - vite.config.js
