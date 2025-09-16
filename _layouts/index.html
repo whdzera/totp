@@ -42,12 +42,12 @@ layout: default
         <label
           class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
         >
-          Account name
+          Account Name
         </label>
         <input
           data-totp-target="accountName"
           type="text"
-          placeholder="Account name"
+          placeholder="e.g. Github Account"
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
         />
       </div>
@@ -61,21 +61,21 @@ layout: default
         <input
           data-totp-target="secretKey"
           type="text"
-          placeholder="Secret key"
+          placeholder="e.g. JBSWY3DPEHPK3PXP"
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
         />
       </div>
 
-      <div class="flex gap-4">
+      <div class="flex flex-wrap gap-4">
         <button
           data-action="click->totp#addAccount"
-          class="clickable px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors duration-200"
+          class="clickable flex-1 sm:flex-none px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors duration-200"
         >
           Add
         </button>
         <button
           data-action="click->totp#clearData"
-          class="clickable px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 dark:focus:ring-offset-gray-800 transition-colors duration-200"
+          class="clickable flex-1 sm:flex-none px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 dark:focus:ring-offset-gray-800 transition-colors duration-200"
         >
           Remove all
         </button>
