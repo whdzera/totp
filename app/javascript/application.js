@@ -2,8 +2,17 @@ import { Application } from "@hotwired/stimulus";
 
 window.Stimulus = Application.start();
 
-import TotpController from "./controllers/totp_controller.js";
-Stimulus.register("totp", TotpController);
+const controllers = import.meta.glob("./controllers/*_controller.js", {
+  eager: true,
+});
 
-import ThemeController from "./controllers/theme_controller.js";
-Stimulus.register("theme", ThemeController);
+for (const path in controllers) {
+  const controller = controllers[path].default;
+  const name = path
+    .split("/")
+    .pop()
+    .replace("_controller.js", "")
+    .replace(/_/g, "-");
+
+  Stimulus.register(name, controller);
+}
